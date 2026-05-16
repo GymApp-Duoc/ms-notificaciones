@@ -1,16 +1,16 @@
 package com.gymapp.ms_notificaciones.service;
 
+import com.gymapp.ms_notificaciones.client.MiembroClient;
 import com.gymapp.ms_notificaciones.dto.NotificacionRequestDTO;
 import com.gymapp.ms_notificaciones.dto.NotificacionResponseDTO;
 import com.gymapp.ms_notificaciones.exception.BusinessException;
 import com.gymapp.ms_notificaciones.model.Notificacion;
 import com.gymapp.ms_notificaciones.repository.NotificacionRepository;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,14 +21,12 @@ import java.util.stream.Collectors;
 public class NotificacionServiceImpl implements NotificacionService {
 
     private final NotificacionRepository repository;
-    private final RestTemplate restTemplate;
-
-    @Value("${ms.miembros.url}")
-    private String miembrosUrl;
+    private final MiembroClient miembroClient;
 
     @Override
     @Transactional
     public NotificacionResponseDTO crearNotificacion(NotificacionRequestDTO dto) {
+        log.info("Iniciando creación de notificación para el miembro ID: {}", dto.getMiembroId());
 
         validarMiembroEnMsMiembros(dto.getMiembroId());
 
@@ -38,12 +36,16 @@ public class NotificacionServiceImpl implements NotificacionService {
         n.setMensaje(dto.getMensaje());
         n.setLeida(false);
 
-        return mapearADTO(repository.save(n));
+        Notificacion guardada = repository.save(n);
+        log.info("Notificación registrada exitosamente con ID: {}", guardada.getId());
+
+        return mapearADTO(guardada);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<NotificacionResponseDTO> obtenerTodasPorMiembro(Long miembroId) {
+        log.info("Consultando historial completo de notificaciones para el miembro ID: {}", miembroId);
         return repository.findByMiembroIdOrderByFechaCreacionDesc(miembroId).stream()
                 .map(this::mapearADTO)
                 .collect(Collectors.toList());
@@ -52,6 +54,7 @@ public class NotificacionServiceImpl implements NotificacionService {
     @Override
     @Transactional(readOnly = true)
     public List<NotificacionResponseDTO> obtenerNoLeidasPorMiembro(Long miembroId) {
+        log.info("Consultando notificaciones no leídas para el miembro ID: {}", miembroId);
         return repository.findByMiembroIdAndLeidaFalseOrderByFechaCreacionDesc(miembroId).stream()
                 .map(this::mapearADTO)
                 .collect(Collectors.toList());
@@ -61,8 +64,10 @@ public class NotificacionServiceImpl implements NotificacionService {
     @Transactional
     public NotificacionResponseDTO marcarComoLeida(Long id) {
         Notificacion n = repository.findById(id)
-                .orElseThrow(() -> new BusinessException("Notificación ID " + id + " no encontrada."));
+                .orElseThrow(() -> new BusinessException("No se pudo actualizar estado: Notificación ID " + id + " no encontrada."));
+
         n.setLeida(true);
+        log.info("Notificación ID {} marcada como leída.", id);
         return mapearADTO(repository.save(n));
     }
 
@@ -73,7 +78,9 @@ public class NotificacionServiceImpl implements NotificacionService {
         if (!noLeidas.isEmpty()) {
             noLeidas.forEach(n -> n.setLeida(true));
             repository.saveAll(noLeidas);
-            log.info("Marcadas {} notificaciones como leídas para el miembro {}", noLeidas.size(), miembroId);
+            log.info("Operación masiva: Marcadas {} notificaciones como leídas para el miembro {}", noLeidas.size(), miembroId);
+        } else {
+            log.info("El miembro {} no tiene notificaciones pendientes por leer.", miembroId);
         }
     }
 
@@ -87,16 +94,22 @@ public class NotificacionServiceImpl implements NotificacionService {
 
     private void validarMiembroEnMsMiembros(Long miembroId) {
         try {
-            String url = miembrosUrl + "/api/miembros/" + miembroId;
-            restTemplate.getForObject(url, Object.class);
-        } catch (Exception e) {
-            log.error("Error validando miembro {}: {}", miembroId, e.getMessage());
-            throw new BusinessException("No se puede enviar la notificación: El miembro no existe en el sistema.");
+            Boolean existe = miembroClient.validarMiembro(miembroId);
+
+            if (existe == null || !existe) {
+                log.warn("Rechazo de creación: El miembro ID {} no existe en los registros.", miembroId);
+                throw new BusinessException("No se puede enviar la notificación: El miembro destinatario no existe.");
+            }
+        } catch (FeignException.NotFound e) {
+            log.warn("El MS-MIEMBROS reportó que el miembro ID {} no fue encontrado.", miembroId);
+            throw new BusinessException("No se puede enviar la notificación: El miembro destinatario no existe.");
+        } catch (FeignException e) {
+            log.error("Fallo grave de comunicación con MS-MIEMBROS: {}", e.getMessage());
+            throw new BusinessException("Servicio de validación de usuarios temporalmente no disponible.");
         }
     }
 
     private NotificacionResponseDTO mapearADTO(Notificacion n) {
-
         return NotificacionResponseDTO.builder()
                 .id(n.getId())
                 .miembroId(n.getMiembroId())
