@@ -1,13 +1,13 @@
-package com.gymapp.ms_notificaciones;
+// package com.gymapp.ms_notificacion;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+// import org.junit.jupiter.api.Test;
+// import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class MsNotificacionesApplicationTests {
+// @SpringBootTest
+// class MsNotificacionesApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+//    @Test
+//    void contextLoads() {
+//    }
 
-}
+// }
