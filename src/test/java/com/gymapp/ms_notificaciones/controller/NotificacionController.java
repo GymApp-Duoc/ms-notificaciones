@@ -73,7 +73,6 @@ public class NotificacionController {
         return ResponseEntity.noContent().build();
     }
 
-    // --- REPORTES ---
 
     @GetMapping("/reportes/miembro/{miembroId}/leidas")
     @Operation(summary = "Reporte 1: Historial de Leídas")

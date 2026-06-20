@@ -119,5 +119,35 @@ public class NotificacionServiceImpl implements NotificacionService {
                 .fechaCreacion(n.getFechaCreacion())
                 .build();
     }
+    @Override
+    @Transactional(readOnly = true)
+    public List<NotificacionResponseDTO> reporteLeidasPorMiembro(Long miembroId) {
+        return repository.findLeidasPorMiembro(miembroId).stream().map(this::mapearADTO).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<NotificacionResponseDTO> reporteBuscarPorTitulo(String palabra) {
+        return repository.buscarPorTitulo(palabra).stream().map(this::mapearADTO).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<NotificacionResponseDTO> reporteRecientes(Long miembroId) {
+        return repository.findRecientesPorMiembro(miembroId, java.time.LocalDateTime.now().minusDays(1)).stream()
+                .map(this::mapearADTO).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long reporteTotalNoLeidasSistema() {
+        return repository.countGlobalNoLeidas();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<NotificacionResponseDTO> reporteTop10Global() {
+        return repository.findTop10RecientesGlobal().stream().map(this::mapearADTO).collect(Collectors.toList());
+    }
 }
 

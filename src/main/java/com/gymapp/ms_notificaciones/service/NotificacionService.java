@@ -12,4 +12,11 @@ public interface NotificacionService {
     NotificacionResponseDTO marcarComoLeida(Long id);
     void marcarTodasComoLeidas(Long miembroId);
     long contarNoLeidas(Long miembroId);
+
+
+    List<NotificacionResponseDTO> reporteLeidasPorMiembro(Long miembroId);
+    List<NotificacionResponseDTO> reporteBuscarPorTitulo(String palabra);
+    List<NotificacionResponseDTO> reporteRecientes(Long miembroId);
+    long reporteTotalNoLeidasSistema();
+    List<NotificacionResponseDTO> reporteTop10Global();
 }

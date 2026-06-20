@@ -26,9 +26,9 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // Permitimos que otros microservicios envíen notificaciones sin token
+
                         .requestMatchers(HttpMethod.POST, "/api/notificaciones").permitAll()
-                        // El resto de acciones (ver tus notificaciones) requiere login
+
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
