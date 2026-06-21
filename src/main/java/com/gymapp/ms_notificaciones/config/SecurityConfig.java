@@ -1,5 +1,6 @@
 package com.gymapp.ms_notificaciones.config;
 
+import jakarta.ws.rs.HttpMethod;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,12 +30,10 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-<<<<<<< HEAD
 
                         .requestMatchers(HttpMethod.POST, "/api/notificaciones").permitAll()
 
-=======
->>>>>>> 62f6acce46904c0d5dc874f84d67d2744159a445
+
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
